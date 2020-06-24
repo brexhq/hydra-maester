@@ -49,9 +49,10 @@ func init() {
 
 func main() {
 	var (
-		metricsAddr, hydraURL, endpoint, forwardedProto, syncPeriod string
-		hydraPort                                                   int
-		enableLeaderElection                                        bool
+		hydraURL, endpoint, forwardedProto string
+		metricsAddr, syncPeriod, namespace string
+		hydraPort                          int
+		enableLeaderElection               bool
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -62,6 +63,7 @@ func main() {
 	flag.StringVar(&syncPeriod, "sync-period", "10h", "Determines the minimum frequency at which watched resources are reconciled")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&namespace, "namespace", "", "If set, scopes the controller to a specific namespace")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.Logger(true))
@@ -77,6 +79,7 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		SyncPeriod:         &syncPeriodParsed,
+		Namespace:          namespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
