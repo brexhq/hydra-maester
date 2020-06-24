@@ -50,9 +50,10 @@ func init() {
 
 func main() {
 	var (
-		metricsAddr, hydraURL, endpoint, forwardedProto, syncPeriod, namespaces string
-		hydraPort                                                               int
-		enableLeaderElection                                                    bool
+		metricsAddr, hydraURL, endpoint, forwardedProto string
+		syncPeriod, namespaces, onlyNamespace           string
+		hydraPort                                       int
+		enableLeaderElection                            bool
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -64,9 +65,19 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&namespaces, "namespaces", "", "If set, this filters the namespaces that oauth2clients will be processed from")
+	flag.StringVar(&onlyNamespace, "only-namespace", "", "If set, this scopes the controller to a specific namespace, removing the need for cluster level roles")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.Logger(true))
+
+	if onlyNamespace != "" {
+		if namespaces != "" {
+			setupLog.Error(fmt.Errorf("namespaces and only-namespace are mutually exclusive"), "error parsing configuration")
+			os.Exit(1)
+		}
+
+		namespaces = onlyNamespace
+	}
 
 	syncPeriodParsed, err := time.ParseDuration(syncPeriod)
 	if err != nil {
@@ -79,6 +90,7 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		SyncPeriod:         &syncPeriodParsed,
+		Namespace:          onlyNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
